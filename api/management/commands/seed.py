@@ -16,7 +16,7 @@ class Command(BaseCommand):
         
         # Create admin user
         admin_email = 'admin@demo.com'
-        admin_password = 'admin123'
+        admin_password = 'mesb1234'
         
         admin_user, created = User.objects.get_or_create(
             email=admin_email,
@@ -28,15 +28,20 @@ class Command(BaseCommand):
             }
         )
         
+        # Always update password to ensure it's set correctly
+        admin_user.set_password(admin_password)
+        admin_user.role = 'admin'
+        admin_user.is_staff = True
+        admin_user.is_superuser = True
+        admin_user.save()
+        
         if created:
-            admin_user.set_password(admin_password)
-            admin_user.save()
             self.stdout.write(
-                self.style.SUCCESS(f'✅ Created admin user: {admin_email}')
+                self.style.SUCCESS(f'✅ Created admin user: {admin_email} (password: {admin_password})')
             )
         else:
             self.stdout.write(
-                self.style.WARNING(f'⚠️  Admin user already exists: {admin_email}')
+                self.style.SUCCESS(f'✅ Updated admin user: {admin_email} (password reset to: {admin_password})')
             )
         
         # Create installer user

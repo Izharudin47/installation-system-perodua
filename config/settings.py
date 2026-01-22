@@ -9,6 +9,13 @@ from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    pass  # python-dotenv not installed, skip
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-this-in-production')
 
@@ -42,6 +49,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Keep APPEND_SLASH enabled but ensure API URLs work correctly
+APPEND_SLASH = True
+
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
@@ -66,11 +76,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'installation_system',
-        'USER': 'install_user',
-        'PASSWORD': 'installer-Chargers',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME': os.environ.get('DB_NAME', 'installation_system'),
+        'USER': os.environ.get('DB_USER', 'install_user'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'installer-Chargers'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
         'OPTIONS': {
             'charset': 'utf8mb4',
         },
@@ -147,8 +157,38 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ORIGIN', 'http://localhost:3000').split(',')
+# Default to localhost:5173 (Vite default port) and localhost:3000 for development
+default_cors_origins = 'http://localhost:5173,http://localhost:3000'
+CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ORIGIN', default_cors_origins).split(',')
 CORS_ALLOW_CREDENTIALS = True
+
+# In debug mode, allow all origins for easier development
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+
+# Additional CORS settings for preflight requests
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # Geocoding API Configuration
 GEOCODING_API_KEY = os.environ.get('GEOCODING_API_KEY', '')

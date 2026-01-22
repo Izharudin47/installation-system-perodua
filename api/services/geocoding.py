@@ -96,6 +96,10 @@ class GeocodingService:
     
     def _locationiq_autocomplete(self, query):
         """LocationIQ autocomplete."""
+        if not self.api_key:
+            # Return empty results if API key is not configured
+            return []
+        
         url = 'https://us1.locationiq.com/v1/autocomplete.php'
         params = {
             'key': self.api_key,
@@ -103,15 +107,19 @@ class GeocodingService:
             'format': 'json',
             'limit': 10
         }
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
-        
-        return [{
-            'address': item.get('display_name', ''),
-            'latitude': float(item['lat']),
-            'longitude': float(item['lon'])
-        } for item in data]
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            return [{
+                'address': item.get('display_name', ''),
+                'latitude': float(item['lat']),
+                'longitude': float(item['lon'])
+            } for item in data]
+        except requests.exceptions.RequestException as e:
+            # Return empty results on error instead of raising
+            return []
     
     # Geoapify implementations
     def _geoapify_forward(self, address):
