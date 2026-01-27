@@ -44,23 +44,18 @@ class AuthViewSet(viewsets.ViewSet):
             'user': UserSerializer(user).data
         })
     
-    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def register(self, request):
-        """Register new user (admin only) matching frontend format."""
-        if not request.user.is_admin:
-            return Response(
-                {'error': 'Only admins can create new users.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
+        """Register new user (public registration)."""
+        # Public registration: no admin check
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        
-        return Response(
-            {'user': UserSerializer(user).data},
-            status=status.HTTP_201_CREATED
-        )
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'token': str(refresh.access_token),
+            'user': UserSerializer(user).data
+        })
     
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def register_admin(self, request):
@@ -128,6 +123,8 @@ class InstallerViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'bulk_import':
             return InstallerCreateSerializer
+        elif self.action == 'update' or self.action == 'partial_update':
+            return InstallerUpdateSerializer
         return InstallerNestedSerializer
     
     def list(self, request, *args, **kwargs):

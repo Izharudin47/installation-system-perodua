@@ -141,25 +141,68 @@ class InstallerCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(write_only=True)
     password = serializers.CharField(write_only=True, validators=[validate_password])
     
+    city = serializers.CharField(required=False, allow_blank=True)
+    state = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = Installer
         fields = [
             'email', 'password', 'company', 'name', 'phone', 'address',
+            'city', 'state',
             'latitude', 'longitude', 'coverage', 'specialties', 'certifications'
         ]
-    
+
+class InstallerUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating installers."""
+    city = serializers.CharField(required=False, allow_blank=True)
+    state = serializers.CharField(required=False, allow_blank=True)
+    address = serializers.CharField(required=False, allow_blank=True)
+    company = serializers.CharField(required=False, allow_blank=True)
+    name = serializers.CharField(required=False, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_blank=True)
+    latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    coverage = serializers.ListField(child=serializers.CharField(), required=False)
+    specialties = serializers.ListField(child=serializers.CharField(), required=False)
+    certifications = serializers.ListField(child=serializers.CharField(), required=False)
+    availability = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = Installer
+        fields = [
+            'company', 'name', 'phone', 'address', 'city', 'state',
+            'latitude', 'longitude', 'coverage', 'specialties', 'certifications', 'availability'
+        ]
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+    class Meta:
+        model = Installer
+        fields = [
+            'email', 'password', 'company', 'name', 'phone', 'address',
+            'city', 'state',
+            'latitude', 'longitude', 'coverage', 'specialties', 'certifications'
+        ]
+
     def create(self, validated_data):
+        # Always remove email and password from validated_data
         email = validated_data.pop('email')
         password = validated_data.pop('password')
-        
+        city = validated_data.pop('city', '')
+        state = validated_data.pop('state', '')
+
         user = User.objects.create_user(
             email=email,
             username=email,
             password=password,
             role='installer'
         )
-        
-        installer = Installer.objects.create(user=user, **validated_data)
+
+        # Only Installer fields remain in validated_data
+        installer = Installer.objects.create(user=user, city=city, state=state, **validated_data)
         return installer
 
 
@@ -447,12 +490,12 @@ class InstallerRecommendationSerializer(serializers.Serializer):
 
 class DocumentSerializer(serializers.ModelSerializer):
     """Document serializer matching frontend format."""
-    id = serializers.CharField(source='id', read_only=True)
+    id = serializers.CharField(read_only=True)
     fileName = serializers.SerializerMethodField()
     filePath = serializers.SerializerMethodField()
     fileType = serializers.SerializerMethodField()
     fileSize = serializers.IntegerField(source='file_size', read_only=True)
-    category = serializers.CharField(source='category', read_only=True)
+    category = serializers.CharField(read_only=True)
     uploadedAt = serializers.DateTimeField(source='uploaded_at', read_only=True)
     
     class Meta:
